@@ -1,0 +1,121 @@
+
+// ProEngulfing Forex Trading Robot
+// Developer: Forex Robot Easy Team
+// Website: forexroboteasy.com
+
+// Include necessary libraries and dependencies
+
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+// Define necessary constants and variables
+
+const double ENTRY_THRESHOLD = 0.5; // Customizable entry threshold
+const double EXIT_THRESHOLD = 0.3; // Customizable exit threshold
+const double STOP_LOSS = 0.1; // Customizable stop loss level
+const double TAKE_PROFIT = 0.2; // Customizable take profit level
+const double POSITION_SIZE = 10000; // Customizable position size
+
+// Define function to generate trading signals based on engulfing pattern
+
+std::vector<int> generateSignals(const std::vector<double>& prices) {
+    std::vector<int> signals;
+    
+    for (int i = 2; i < prices.size(); i++) {
+        double currentCandle = prices[i];
+        double previousCandle = prices[i-1];
+        double prevPrevCandle = prices[i-2];
+        
+        double bodySize = abs(currentCandle - previousCandle);
+        double rangeSize = abs(previousCandle - prevPrevCandle);
+        
+        double bullishEngulfing = currentCandle > previousCandle && currentCandle < prevPrevCandle;
+        double bearishEngulfing = currentCandle < previousCandle && currentCandle > prevPrevCandle;
+        
+        if (bullishEngulfing && bodySize >= ENTRY_THRESHOLD * rangeSize) {
+            signals.push_back(1); // Buy signal
+        } else if (bearishEngulfing && bodySize >= ENTRY_THRESHOLD * rangeSize) {
+            signals.push_back(-1); // Sell signal
+        } else {
+            signals.push_back(0); // No signal
+        }
+    }
+    
+    return signals;
+}
+
+// Define function to execute trades based on generated signals
+
+void executeTrades(const std::vector<int>& signals) {
+    double currentPrice = 0;
+    double currentPosition = 0;
+    double currentStopLoss = 0;
+    double currentTakeProfit = 0;
+    
+    for (int i = 0; i < signals.size(); i++) {
+        int signal = signals[i];
+        
+        if (signal == 1) { // Buy signal
+            if (currentPosition == -1) {
+                // Close existing sell position
+                std::cout << 'Closing sell position' << std::endl;
+                currentPosition = 0;
+            }
+            
+            if (currentPosition == 0) {
+                // Open new buy position
+                currentPrice = getPrice(); // Function to get real-time market price
+                currentStopLoss = currentPrice - STOP_LOSS;
+                currentTakeProfit = currentPrice + TAKE_PROFIT;
+                currentPosition = 1;
+                std::cout << 'Opening buy position' << std::endl;
+            }
+            
+        } else if (signal == -1) { // Sell signal
+            if (currentPosition == 1) {
+                // Close existing buy position
+                std::cout << 'Closing buy position' << std::endl;
+                currentPosition = 0;
+            }
+            
+            if (currentPosition == 0) {
+                // Open new sell position
+                currentPrice = getPrice(); // Function to get real-time market price
+                currentStopLoss = currentPrice + STOP_LOSS;
+                currentTakeProfit = currentPrice - TAKE_PROFIT;
+                currentPosition = -1;
+                std::cout << 'Opening sell position' << std::endl;
+            }
+        }
+        
+        // Check if stop loss or take profit levels are hit
+        if (currentPosition != 0) {
+            if (currentPosition == 1 && currentPrice <= currentStopLoss) {
+                std::cout << 'Stop loss hit for buy position' << std::endl;
+                currentPosition = 0;
+            } else if (currentPosition == -1 && currentPrice >= currentStopLoss) {
+                std::cout << 'Stop loss hit for sell position' << std::endl;
+                currentPosition = 0;
+            } else if (currentPosition == 1 && currentPrice >= currentTakeProfit) {
+                std::cout << 'Take profit hit for buy position' << std::endl;
+                currentPosition = 0;
+            } else if (currentPosition == -1 && currentPrice <= currentTakeProfit) {
+                std::cout << 'Take profit hit for sell position' << std::endl;
+                currentPosition = 0;
+            }
+        }
+    }
+}
+
+// Define main function
+
+int main() {
+    std::vector<double> prices = {1.2345, 1.2350, 1.2360, 1.2340, 1.2335, 1.2355};
+    
+    std::vector<int> signals = generateSignals(prices);
+    
+    executeTrades(signals);
+    
+    return 0;
+}
